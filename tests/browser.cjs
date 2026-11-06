@@ -67,6 +67,95 @@ const server = createServer(async (req, res) => {
     console.log(`  ${days} días semanales, 12 semanas, Full Body A/B`);
   });
 
+  await test('Progreso semanal: entrada, finalización, selección, semana, esquema y reapertura', async p => {
+    const first = p.locator('[data-day="w1"]');
+    assert.equal(await first.getAttribute('data-progress'), 'not-started');
+    assert.equal(await first.locator('.day-status').count(), 0);
+    await p.evaluate(() => { document.querySelector('[data-card="w1-press"]').open = true; });
+    const row = p.locator('[data-row="w1-press-0"]');
+    await row.locator('[data-done]').click();
+    assert.equal(await first.getAttribute('data-progress'), 'not-started');
+    await row.locator('[data-field="kg"]').fill('20');
+    assert.equal(await first.getAttribute('data-progress'), 'in-progress');
+    assert.match(await first.getAttribute('aria-label'), /En curso$/);
+    await row.locator('[data-field="kg"]').fill('');
+    assert.equal(await first.getAttribute('data-progress'), 'not-started');
+    await row.locator('[data-field="kg"]').fill('20');
+    await row.locator('[data-field="reps"]').fill('10');
+    await row.locator('[data-done]').click();
+    assert.equal(await first.getAttribute('data-progress'), 'in-progress');
+    await p.locator('#finishBtn').click();
+    assert.equal(await first.getAttribute('data-progress'), 'completed');
+    assert.equal(await first.locator('.day-status').textContent(), '✓');
+    assert.equal(await first.getAttribute('aria-pressed'), 'true');
+    await p.locator('[data-day="w2"]').click();
+    assert.equal(await first.getAttribute('data-progress'), 'completed');
+    assert.equal(await first.getAttribute('aria-pressed'), 'false');
+    await p.selectOption('#weekSelect', '2');
+    assert.equal(await first.getAttribute('data-progress'), 'not-started');
+    await p.selectOption('#weekSelect', '1');
+    assert.equal(await first.getAttribute('data-progress'), 'completed');
+    await p.selectOption('#schemeSelect', 'h23i');
+    assert.equal(await p.locator('[data-progress="completed"]').count(), 0);
+    await p.selectOption('#schemeSelect', 'base');
+    await p.locator('#dateSelect').fill('2026-11-05');
+    assert.equal(await first.getAttribute('data-progress'), 'completed');
+    await p.reload();
+    assert.equal(await first.getAttribute('data-progress'), 'completed');
+    await p.locator('#historyTab').click();
+    await p.locator('#historyList [data-open]').click();
+    await p.locator('#reopenBtn').click();
+    assert.equal(await first.getAttribute('data-progress'), 'in-progress');
+  });
+
+  await test('Progreso: sesiones de varias fechas, prioridad y aislamiento por modalidad/esquema', async p => {
+    const result = await p.evaluate(() => {
+      const make = (extra={}) => ({ mode: 'weekly', scheme: 'base', week: 1, dayId: 'w1', exercises: {}, ...extra });
+      state.sessions = { empty: make(), selectedOnly: make({ selected: { 'w1-press': false }, counts: { 'w1-press': 1 } }) };
+      const empty = weeklyDayProgress().get('w1');
+      state.sessions = {
+        otherScheme: make({ scheme: 'h23i', finished: true }),
+        otherMode: make({ mode: 'full', finished: true }),
+        otherWeek: make({ week: 2, finished: true }),
+        archived: make({ legacy: true, finished: true })
+      };
+      const isolated = weeklyDayProgress().get('w1');
+      const partial = make({ date: '2026-11-01', exercises: { 'w1-press': { sets: [{ kg: 0, reps: null, rir: '', done: false }] } } });
+      const finished = make({ date: '2026-11-02', finished: true });
+      state.sessions = { partial, finished };
+      const complete = weeklyDayProgress().get('w1');
+      state.sessions = { finished, partial };
+      const reverse = weeklyDayProgress().get('w1');
+      const before = JSON.stringify(state.sessions); renderDayNavigation();
+      const untouched = JSON.stringify(state.sessions) === before;
+      mode = 'full'; scheme = 'h23i'; day = 'fa';
+      state.sessions = { full: make({ mode: 'full', dayId: 'fa', finished: true }), wrong: make({ mode: 'weekly', dayId: 'fb', finished: true }) };
+      renderRoutine();
+      return { empty, isolated, complete, reverse, untouched, full: weeklyDayProgress().get('fa'), other: weeklyDayProgress().get('fb') };
+    });
+    assert.deepEqual(result, { empty: 'not-started', isolated: 'not-started', complete: 'completed', reverse: 'completed', untouched: true, full: 'completed', other: 'not-started' });
+  });
+
+  await test('Progreso compatible con sesiones y JSON anteriores, sin nuevos campos', async p => {
+    for (const version of [4, 5, 6, 61]) {
+      const original = await p.evaluate(version => {
+        const data = { ...fresh(), version };
+        data.sessions.saved = { mode: 'weekly', dayId: 'w1', week: '1', date: '2026-10-01', finished: true, exercises: {}, snapshot: [] };
+        data.sessions.draft = { mode: 'weekly', dayId: 'w2', week: 1, date: '2026-10-02', exercises: { 'w2-jalon': { sets: [{ kg: null, reps: 8, done: false }] } } };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        return JSON.stringify(data.sessions);
+      }, version);
+      await p.reload();
+      assert.equal(await p.locator('[data-day="w1"]').getAttribute('data-progress'), 'completed');
+      assert.equal(await p.locator('[data-day="w2"]').getAttribute('data-progress'), 'in-progress');
+      const result = await p.evaluate(() => {
+        state = parseBackup(JSON.parse(localStorage.getItem(STORAGE_KEY))); renderRoutine();
+        return { sessions: JSON.stringify(state.sessions), completed: weeklyDayProgress().get('w1'), draft: weeklyDayProgress().get('w2') };
+      });
+      assert.deepEqual(result, { sessions: original, completed: 'completed', draft: 'in-progress' });
+    }
+  });
+
   await test('Series reales, bloqueo, selección, historial, gráficos y recarga', async p => {
     await p.evaluate(() => { document.querySelector('[data-card="w1-press"]').open = true; });
     const row = p.locator('[data-row="w1-press-0"]');

@@ -80,6 +80,12 @@ h1{font-size:20px;letter-spacing:-.035em}.overline{color:var(--dim);letter-spaci
 .days .day{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;min-height:80px;padding:10px 5px;white-space:normal}
 .days .day-title{font-size:12px;line-height:1.2;font-weight:800}
 .days .day small{margin:0;color:inherit;font-size:11px;line-height:1.3;font-weight:600;overflow-wrap:anywhere}
+.days .day-title{display:flex;align-items:center;justify-content:center;gap:4px}
+.days .day-status{flex:none;color:inherit;font-size:13px;line-height:1}
+.days .day-in-progress .day-status{width:6px;height:6px;border-radius:50%;background:var(--cyan)}
+.days .day-completed{background:#17382B;border-color:#4D9B78;color:#B4EFCA}
+.days .day.active{box-shadow:inset 0 0 0 1px var(--cyan)}
+.days .day-completed.active{background:#1B493C;border-color:var(--cyan);color:var(--cyan)}
 select,input[type=date],input[type=number],input[type=text],input[type=file]{background:var(--surface2);border:1px solid #485356;color:var(--text);border-radius:12px;min-height:46px}
 input::placeholder{color:#AAB5B8;opacity:1}input:focus,select:focus{border-color:var(--cyan);outline:2px solid #22E6C14D;outline-offset:1px}
 .field>label{color:var(--dim);font-size:13px}
@@ -583,8 +589,29 @@ function selectors(){const d=currentDay();$("modeSelect").value=mode;$("schemeBo
  $("modeInfo").textContent=mode==="weekly"?"Elegí el esquema histórico o actual. Conservarás las superseries A/B y los registros previos.":"Alternativa cuando no completás la semana: A o B, sin necesidad de agregar ambas al plan semanal.";
  $("weekSelect").innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join("");$("weekSelect").value=String(week);
  $("daySelect").innerHTML=planDays().map(a=>`<option value="${a.id}">${esc(a.label)}</option>`).join("");$("daySelect").value=d.id;$("dateSelect").value=date;
- const cols=planDays().length;$("quickDays").style.gridTemplateColumns=`repeat(${cols},minmax(0,1fr))`;
- $("quickDays").innerHTML=planDays().map((a,i)=>`<button type="button" class="day ${a.id===day?"active":""}" data-day="${a.id}" aria-pressed="${a.id===day}"><span class="day-title">Día ${i+1}</span><small>${esc(a.label.replace(/^Día\s+\d+\s*[·—-]\s*/u,""))}</small></button>`).join("");}
+ renderDayNavigation();}
+// Progreso derivado de las sesiones existentes; no añade datos ni cambia sus claves.
+function weeklyDayProgress(){
+ const progress=new Map(planDays().map(d=>[d.id,"not-started"]));
+ const currentScheme=mode==="full"?"base":scheme;
+ for(const s of Object.values(state.sessions)){
+  if(!s||s.legacy||s.mode!==mode||(s.scheme||"base")!==currentScheme||Number(s.week)!==week||!progress.has(s.dayId))continue;
+  if(s.finished){progress.set(s.dayId,"completed");continue}
+  if(progress.get(s.dayId)==="completed")continue;
+  const activity=Object.values(s.exercises||{}).some(r=>(r?.sets||[]).some(z=>z&&(z.done||isFiniteInput(z.kg)||isFiniteInput(z.reps)||isFiniteInput(z.rir))));
+  if(activity)progress.set(s.dayId,"in-progress");
+ }
+ return progress;
+}
+function renderDayNavigation(){
+ const progress=weeklyDayProgress();
+ $("quickDays").style.gridTemplateColumns=`repeat(${planDays().length},minmax(0,1fr))`;
+ $("quickDays").innerHTML=planDays().map((a,i)=>{
+  const status=progress.get(a.id),name=a.label.replace(/^Día\s+\d+\s*[·—-]\s*/u,""),label=status==="completed"?"Completado":status==="in-progress"?"En curso":"No iniciado";
+  const mark=status==="not-started"?"":`<span class="day-status" aria-hidden="true">${status==="completed"?"✓":""}</span>`;
+  return `<button type="button" class="day day-${status} ${a.id===day?"active":""}" data-day="${a.id}" data-progress="${status}" aria-pressed="${a.id===day}" aria-label="${esc(`Día ${i+1} · ${name} · ${label}`)}" title="${esc(label)}"><span class="day-title"><span>Día ${i+1}</span>${mark}</span><small>${esc(name)}</small></button>`;
+ }).join("");
+}
 function guideline(){if(mode==="full")return `<strong>Full Body A/B:</strong> 1–2 RIR como objetivo del esquema original. Como llevás más de 6 meses sin entrenar, empezá con 3–4 RIR y menos series si hace falta. Alterná A y B cada vez que uses el plan; no tenés que sumar ambas a los cuatro días.`;
 return `<strong>Esquema seleccionado:</strong> ${esc(SCHEMES[scheme].label)}. Las parejas <b>A/B</b> se hacen consecutivas y se descansa al terminar la B. Los pesos de 2023–2025 son históricos, NO cargas obligatorias hoy. En semanas 1–2 priorizá 3–4 RIR, técnica y menos series si lo necesitás. <details class="phase"><summary>Ver fases y criterio de progresión</summary>Semanas 1–2: readaptación · 3–4 RIR. Semanas 3–4: consolidar · 2–3 RIR. Semanas 5–8: progresar en repeticiones/carga · 1–3 RIR. Semanas 9–11: sostener avances · 1–2 RIR. Semana 12: evaluar y reducir fatiga. No es obligatorio completar todas las series del esquema histórico.</details>`;}
 function plannedTarget(ex,index){const spec=ex.sets[index]||ex.sets.at(-1)||{};let txt="";if(spec.reps!==null&&spec.reps!==undefined)txt+=`${fmt(spec.reps)} ${spec.unit==="seg"?"seg":spec.unit==="min"?"min":spec.unit==="pasos"?"pasos":"reps"}`;else if(ex.range)txt+=`${ex.range[0]}–${ex.range[1]} reps`;else txt+="Reps libres";
@@ -628,7 +655,7 @@ function setTab(to){activeTab=to;$("routinePage").hidden=to!=="routine";$("histo
 function finalize(){let s=session();if(!s){notify("Marcá al menos una serie antes de finalizar.");return}if(s.finished)return;const st=calculate(s);if(!st.done){notify("Marcá al menos una serie completada.");return}if(st.done<st.planned&&!confirm(`Completaste ${st.done} de ${st.planned} series. ¿Guardar como sesión parcial?`))return;
  s.title=currentDay().label;s.snapshot=activeExercises(day,s).map(ex=>({...ex,sets:ex.sets.map(z=>({...z})),target:countFor(ex,s)}));s.finished=true;s.finishedAt=Date.now();save();renderRoutine();notify(st.done===st.planned?"¡Sesión completa guardada!":"Sesión parcial guardada en el historial.")}
 function reopen(){const s=session();if(!s?.finished)return;if(!confirm("¿Reabrir sesión para editar las series?"))return;s.finished=false;delete s.finishedAt;delete s.snapshot;save();renderRoutine();notify("Sesión reabierta")}
-function modifySet(exId,i,field,value){const s=session();if(s?.finished)return;const r=record(exId,true),z=actual(exId,i);if(z.done)return;const val=field==="rir"?value:value===""?null:Number(value);if(field!=="rir"&&val!==null&&(!Number.isFinite(val)||val<0||val>2000))return;z[field]=val;save()}
+function modifySet(exId,i,field,value){const s=session();if(s?.finished)return;const r=record(exId,true),z=actual(exId,i);if(z.done)return;const val=field==="rir"?value:value===""?null:Number(value);if(field!=="rir"&&val!==null&&(!Number.isFinite(val)||val<0||val>2000))return;z[field]=val;save();renderDayNavigation()}
 function toggleSet(exId,i){const s=session();if(s?.finished)return;const ex=findEx(exId);if(!ex||session()?.selected?.[exId]===false)return;const z=actual(exId,i);if(!z.done){const row=document.querySelector(`[data-row="${exId}-${i}"]`);if(row){for(const fld of ["kg","reps"]){const inp=row.querySelector(`[data-field="${fld}"]`);if(inp&&z[fld]==null&&inp.value!=="")z[fld]=Number(inp.value)}}}if(z.done){z.done=false;save();renderRoutine();notify("Serie desbloqueada");return}
  const spec=ex.sets[i]||ex.sets.at(-1)||{};const unit=spec.unit||"reps";
  // Conserva valores editados y objetivos iniciales si aún no hubo un input.
