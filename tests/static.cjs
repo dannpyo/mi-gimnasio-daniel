@@ -11,7 +11,10 @@ new Script(readFileSync(resolve(root, 'sw.js'), 'utf8'));
 const plans = runInNewContext(scripts[0].split('const fresh=')[0] + '\nJSON.stringify({PLANS,SCHEMES})');
 // Baseline: upstream 4b31acc102234fd3b1747cf02de4db1bef8e0316.
 // Covers exercise names, order, sets, kg, reps, alternatives, pairs and notes.
-const hash = createHash('sha256').update(plans).digest('hex');
+// Los nombres visibles de esquemas pueden cambiar sin alterar la programación.
+const canonical = JSON.parse(plans);
+for (const scheme of Object.values(canonical.SCHEMES)) delete scheme.label;
+const hash = createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
 assert.equal(hash, readFileSync(resolve(__dirname, 'plans.sha256'), 'utf8').trim(), 'Las rutinas o cargas programadas cambiaron');
 const manifest = JSON.parse(readFileSync(resolve(root, 'manifest.webmanifest'), 'utf8'));
 assert.equal(manifest.start_url, './'); assert.equal(manifest.scope, './'); assert.equal(manifest.id, './');
