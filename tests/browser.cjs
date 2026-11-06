@@ -40,18 +40,29 @@ const server = createServer(async (req, res) => {
   await test('Todos los esquemas, días, semanas y Full Body cargan', async p => {
     const schemes = await p.locator('#schemeSelect option').evaluateAll(nodes => nodes.map(n => n.value));
     assert.equal(schemes.length, 7);
+    async function checkDay(day) {
+      const expected = await p.evaluate(id => planDays().find(d => d.id === id), day);
+      const button = p.locator(`[data-day="${day}"]`);
+      await button.click();
+      assert.equal(await button.getAttribute('aria-pressed'), 'true');
+      assert.equal(await button.locator('small').textContent(), expected.label.replace(/^Día\s+\d+\s*[·—-]\s*/u, ''));
+      assert.match(await button.locator('.day-title').textContent(), /^Día \d$/);
+      assert.deepEqual(await p.locator('[data-card]').evaluateAll(nodes => nodes.map(n => n.dataset.card)), expected.exercises.map(e => e.id));
+      assert.equal(await p.locator('#heroTitle').textContent(), expected.label);
+      assert.equal(await button.evaluate(n => getComputedStyle(n).color), 'rgb(34, 230, 193)');
+      assert.equal(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    }
     let days = 0;
     for (const scheme of schemes) {
       await p.selectOption('#schemeSelect', scheme);
       const ids = await p.locator('#daySelect option').evaluateAll(nodes => nodes.map(n => n.value));
       for (const day of ids) {
-        await p.locator(`[data-day="${day}"]`).click();
-        assert.ok(await p.locator('[data-card]').count()); days++;
+        await checkDay(day); days++;
       }
     }
     for (let week = 1; week <= 12; week++) await p.selectOption('#weekSelect', String(week));
     await p.selectOption('#modeSelect', 'full');
-    for (const day of ['fa', 'fb']) { await p.locator(`[data-day="${day}"]`).click(); assert.ok(await p.locator('[data-card]').count()); }
+    for (const day of ['fa', 'fb']) await checkDay(day);
     assert.equal(await p.locator('#schemeBox').isHidden(), true);
     console.log(`  ${days} días semanales, 12 semanas, Full Body A/B`);
   });
