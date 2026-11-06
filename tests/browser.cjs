@@ -354,6 +354,12 @@ const server = createServer(async (req, res) => {
     assert.equal(await p.locator('#chart circle').count(), 2);
     await p.waitForFunction(() => Math.abs(document.querySelector('#loadChartPanel').getBoundingClientRect().top) < 4);
     assert.equal(await p.locator('#chartExercise').evaluate(n => n === document.activeElement), true);
+    await p.getByRole('button', { name: 'Ver evolución de Press en máquina B · Alternativa', exact: true }).focus();
+    await p.keyboard.press('Enter');
+    assert.deepEqual(await p.evaluate(() => chartData().map(p => p.y)), [90]);
+    await p.getByRole('button', { name: 'Ver evolución de Press en máquina A · Alternativa', exact: true }).focus();
+    await p.keyboard.press('Enter');
+    assert.deepEqual(await p.evaluate(() => chartData().map(p => p.y)), [60, 65]);
     await p.selectOption('#chartVariant', 'base');
     assert.deepEqual(await p.evaluate(() => chartData().map(p => p.y)), [40, 50, 55]);
     await p.selectOption('#chartMetric', 'volume');
