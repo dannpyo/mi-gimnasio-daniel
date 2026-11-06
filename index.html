@@ -155,6 +155,18 @@ dialog{background:var(--surface);border:1px solid var(--line)}.dialogActions but
 .hintchip{background:#193A35!important;color:var(--cyan)!important}
 /* Mantener el botón de avance sin efectos azules */
 .form button[type=submit]{background:var(--cyan);color:#081713}
+
+/* Resumen de fuerza: tarjetas de dos columnas, sin desplazamiento horizontal. */
+.strength-controls{display:grid;grid-template-columns:1fr;gap:9px;margin:13px 0}
+.strength-list{display:grid;gap:10px}.strength-row{border:1px solid var(--line);border-radius:13px;padding:12px;min-width:0;background:#111516}
+.strength-head{display:flex;align-items:flex-start;gap:8px;justify-content:space-between}
+.strength-link{border:0;background:none;color:var(--text);padding:0;text-align:left;font:inherit;font-size:14px;font-weight:800;min-height:44px;flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}.strength-link span{color:var(--cyan)}
+.strength-trend{font-size:10px;padding:4px 6px;border-radius:7px;background:var(--surface2);color:var(--dim);white-space:nowrap;margin-top:5px}.strength-trend.up{color:#8DE5C0;background:#17382B}.strength-trend.down{color:#C1B8B2}.strength-trend.same{color:var(--dim)}
+.strength-meta{font-size:10px;line-height:1.5;color:var(--dim);margin:0 0 9px;overflow-wrap:anywhere}
+.strength-values{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}.strength-values span{display:block;font-size:10px;color:var(--dim)}.strength-values strong{display:block;font-size:18px;color:var(--text);margin-top:4px}.strength-values small{font-size:11px;font-weight:600;white-space:nowrap}
+.strength-delta{font-size:11px;margin:10px 0 8px;color:var(--dim);line-height:1.5}.strength-delta b{color:var(--text)}
+.strength-estimate{font-size:11px;color:var(--dim);line-height:1.6}.strength-estimate summary{cursor:pointer;color:var(--cyan)}.strength-estimate p{margin:7px 0 0}.strength-link:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+@media(min-width:600px){.strength-controls{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -179,7 +191,8 @@ dialog{background:var(--surface);border:1px solid var(--line)}.dialogActions but
 <div class="end"><button class="primary" id="finishBtn" type="button">✓ Finalizar sesión</button><button class="secondary" id="reopenBtn" type="button" hidden>↺ Reabrir sesión</button><p id="finishHint">Se registra con la fecha seleccionada.</p></div>
 </section>
 <section id="historyPage" hidden><div class="sectionhead"><h2>Historial e informes</h2><span class="muted tiny">Almacenamiento local</span></div><div class="kpis"><div class="kpi"><strong id="kpiSessions">0</strong><span>Sesiones finalizadas</span></div><div class="kpi"><strong id="kpiSets">0</strong><span>Series completadas</span></div><div class="kpi"><strong id="kpiVolume">0</strong><span>Volumen kg·rep</span></div></div>
-<div class="panel"><div class="row-between"><h3>Evolución de cargas</h3><span class="overline">INTERACTIVO</span></div><div class="field" style="margin-top:13px"><label for="chartExercise">Ejercicio</label><select id="chartExercise"></select></div><div class="twocol"><div class="field"><label for="chartMetric">Medida</label><select id="chartMetric"><option value="max">Peso máximo (kg)</option><option value="volume">Volumen (kg·rep)</option></select></div><div class="field"><label for="chartVariant">Variante</label><select id="chartVariant"><option value="base">Original</option><option value="alt">Alternativa</option></select></div></div><div id="chart" class="chart"></div><p id="chartInfo" class="chartInfo" aria-live="polite"></p><p class="readme">El volumen es la suma de kg × repeticiones de series principales completadas; se excluyen calentamiento, cardio e isometrías. Los kilogramos de diferentes máquinas no siempre son comparables.</p></div>
+<div class="panel" id="strengthSummaryPanel"><h3>Resumen de progresión de fuerza</h3><p class="readme">Dos últimas sesiones finalizadas por ejercicio y variante. Más carga no implica por sí sola mejor rendimiento: compará también las repeticiones y el implemento utilizado. Una disminución no implica necesariamente un retroceso.</p><div class="strength-controls"><div class="field"><label for="strengthGroup">Grupo muscular</label><select id="strengthGroup"><option value="">Todos los grupos</option></select></div><div class="field"><label for="strengthSort">Ordenar por</label><select id="strengthSort"><option value="name">Nombre del ejercicio</option><option value="load-up">Mayor aumento de carga</option><option value="load-down">Mayor disminución de carga</option><option value="estimate-up">Mayor aumento de 1RM estimado</option></select></div></div><p id="strengthCount" class="muted tiny" aria-live="polite"></p><div id="strengthList" class="strength-list"></div><p class="readme">Sólo series realizadas con carga y repeticiones válidas. Se excluyen calentamiento, cardio e isometrías. El 1RM es una estimación Epley, no una carga indicada para entrenar. Se mantienen separados los registros de distintos esquemas e implementos; usá el mismo equipo para comparar.</p></div>
+<div class="panel" id="loadChartPanel"><div class="row-between"><h3>Evolución de cargas</h3><span class="overline">INTERACTIVO</span></div><div class="field" style="margin-top:13px"><label for="chartExercise">Ejercicio</label><select id="chartExercise"></select></div><div class="twocol"><div class="field"><label for="chartMetric">Medida</label><select id="chartMetric"><option value="max">Peso máximo (kg)</option><option value="volume">Volumen (kg·rep)</option></select></div><div class="field"><label for="chartVariant">Variante</label><select id="chartVariant"><option value="base">Original</option><option value="alt">Alternativa</option></select></div></div><div id="chart" class="chart"></div><p id="chartInfo" class="chartInfo" aria-live="polite"></p><p class="readme">El volumen es la suma de kg × repeticiones de series principales completadas; se excluyen calentamiento, cardio e isometrías. Los kilogramos de diferentes máquinas no siempre son comparables.</p></div>
 <div class="panel"><div class="row-between"><h3>Sesiones por fecha</h3><span id="historyCount" class="muted tiny"></span></div><div id="historyList"></div></div>
 <div class="panel"><div class="row-between"><h3>Sesiones en curso</h3><span id="draftCount" class="muted tiny"></span></div><div id="draftList"></div></div></section>
 <section id="progressPage" hidden>
@@ -679,15 +692,89 @@ function strengthSets(s,ex){return recordedSets(s,ex).filter((z,i)=>z.done&&isFi
 function statsFor(s){if(!s?.legacy)return calculate(s);
  // Las versiones antiguas pueden tener snapshots incompatibles; no inventar series planificadas.
  let done=0,volume=0;for(const [id,r] of Object.entries(s.exercises||{})){const ex=(s.snapshot||[]).find(e=>e.id===id);for(const z of r.sets||[]){if(!z.done)continue;done++;if((ex?.unit||"reps")==="reps"&&isFiniteInput(z.kg)&&isFiniteInput(z.reps))volume+=Number(z.kg)*Number(z.reps)}}return {done,planned:0,volume,cardio:0}}
+// Consultas de sólo lectura: cada serie conserva su identidad y su sesión de origen.
+function strengthIdentity(ex,variant){return JSON.stringify([ex.id,variant,(variant==="alt"?ex.alt:ex.name)||""])}
+function strengthProgressRows(){
+ const groups=new Map();
+ const sessions=allFinalized().filter(s=>!s.legacy&&dateIsValid(s.date)).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))||Number(a.finishedAt||a.createdAt||0)-Number(b.finishedAt||b.createdAt||0)||String(a.key||"").localeCompare(String(b.key||"")));
+ for(const s of sessions){
+  const perSession=new Map();
+  for(const ex of sourceExercises(s)){
+   if(ex.kind!=="main")continue;
+   const rec=s.exercises?.[ex.id],variant=rec?.variant||"base";
+   if(!rec||!["base","alt"].includes(variant)||(variant==="alt"&&!ex.alt))continue;
+   const sets=strengthSets(s,ex).filter(z=>Number.isInteger(Number(z.reps))&&Number(z.reps)>0).map(z=>({kg:Number(z.kg),reps:Number(z.reps)}));
+   if(!sets.length)continue;
+   const key=strengthIdentity(ex,variant),name=(variant==="alt"?ex.alt:ex.name)||ex.id;
+   if(perSession.has(key))continue;perSession.set(key,{key,id:ex.id,originName:ex.name,name,variant,group:ex.group||"Otros",context:s.mode==="full"?"Full Body":SCHEMES[s.scheme||"base"]?.label||"Plan semanal",sets:[]});
+   perSession.get(key).sets.push(...sets);
+  }
+  for(const item of perSession.values()){
+   const peak=item.sets.reduce((a,z)=>z.kg>a.kg||z.kg===a.kg&&z.reps>a.reps?z:a);
+   // Peso corporal/asistencia y bandas no representan una carga total comparable.
+   const comparable=!/dominadas|fondos|flexiones|abdominal|plancha|asistid|elástic|elastic|banda|peso corporal/i.test(item.name);
+   const estimates=comparable?item.sets.filter(z=>z.kg>0&&z.reps<=10).map(z=>({...z,value:z.kg*(1+z.reps/30)})):[];
+   const estimate=estimates.length?estimates.reduce((a,z)=>z.value>a.value?z:a):null;
+   const row=groups.get(item.key)||{key:item.key,id:item.id,originName:item.originName,name:item.name,variant:item.variant,group:item.group,context:item.context,sessions:[]};
+   row.sessions.push({date:s.date,kg:peak.kg,reps:peak.reps,estimate,volume:item.sets.reduce((sum,z)=>sum+z.kg*z.reps,0),title:s.title||"Entrenamiento"});
+   groups.set(item.key,row);
+  }
+ }
+ return [...groups.values()].map(row=>{
+  const latest=row.sessions.at(-1),previous=row.sessions.at(-2)||null,delta=previous?latest.kg-previous.kg:null;
+  return {...row,latest,previous,count:row.sessions.length,delta,percent:previous&&previous.kg>0?delta/previous.kg*100:null,repsDelta:previous?latest.reps-previous.reps:null,estimateDelta:previous?.estimate&&latest.estimate?latest.estimate.value-previous.estimate.value:null};
+ });
+}
+const strengthSigned=n=>`${n>0?"+":""}${fmt(n)}`;
+function renderStrengthSummary(){
+ const rows=strengthProgressRows(),select=$("strengthGroup"),prior=select.value;
+ const groups=[...new Set(rows.map(r=>r.group))].sort((a,b)=>a.localeCompare(b,"es"));
+ select.innerHTML='<option value="">Todos los grupos</option>'+groups.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join("");
+ select.value=groups.includes(prior)?prior:"";
+ const filtered=rows.filter(r=>!select.value||r.group===select.value),sort=$("strengthSort").value;
+ filtered.sort((a,b)=>{
+  const value=r=>sort==="estimate-up"?r.estimateDelta:r.delta;
+  if(sort!=="name"){
+   const av=value(a),bv=value(b);
+   if(av===null&&bv!==null)return 1;if(bv===null&&av!==null)return -1;
+   if(av!==null&&bv!==null&&av!==bv)return sort==="load-down"?av-bv:bv-av;
+  }
+  return a.name.localeCompare(b.name,"es")||a.key.localeCompare(b.key);
+ });
+ $("strengthCount").textContent=`${filtered.length} ejercicio(s)`;
+ $("strengthList").innerHTML=filtered.length?filtered.map(r=>{
+  const direction=r.delta===null?"pending":r.delta>0?"up":r.delta<0?"down":"same";
+  const indicator=r.delta===null?"Sin comparación":r.delta>0?"↑ Carga":r.delta<0?"↓ Carga":"= Carga";
+  const cell=(label,x)=>`<div><span>${label}${x?` · ${esc(x.date)}`:""}</span><strong>${x?`${fmt(x.kg)} kg <small>× ${x.reps} reps</small>`:"—"}</strong></div>`;
+  const estimate=x=>x?.estimate?`${fmt(x.estimate.value)} kg (${fmt(x.estimate.kg)} kg × ${x.estimate.reps})`:"No disponible";
+  return `<article class="strength-row"><div class="strength-head"><button type="button" class="strength-link" data-strength-key="${esc(r.key)}" aria-label="Ver evolución de ${esc(r.name)} · ${r.variant==="alt"?"Alternativa":"Original"}">${esc(r.name)} <span aria-hidden="true">›</span></button><span class="strength-trend ${direction}">${indicator}</span></div><p class="strength-meta">${esc(r.group)} · ${r.variant==="alt"?"Alternativa":"Original"} · ${r.count} sesión(es)<br><span>${esc(r.context)}</span></p><div class="strength-values">${cell("Anterior",r.previous)}${cell("Más reciente",r.latest)}</div>${r.previous?`<p class="strength-delta">Carga: <b>${strengthSigned(r.delta)} kg</b> (${r.percent===null?"% no disponible":strengthSigned(r.percent)+"%"}) · Reps: <b>${strengthSigned(r.repsDelta)}</b></p>`:'<p class="strength-delta">Faltan datos para comparar</p>'}<details class="strength-estimate"><summary>1RM estimado · ${r.latest.estimate?(r.previous?.estimate?fmt(r.previous.estimate.value)+" → ":"")+fmt(r.latest.estimate.value)+" kg":"No disponible"}</summary><p>Estimación Epley = kg × (1 + reps / 30), sólo series de 1–10 reps.<br>Anterior: ${estimate(r.previous)}<br>Reciente: ${estimate(r.latest)}${r.estimateDelta===null?"":`<br>Cambio estimado: ${strengthSigned(r.estimateDelta)} kg`}</p></details></article>`;
+ }).join(""):'<div class="empty"><b>Sin series de fuerza válidas</b>Se necesitan sesiones finalizadas con carga y repeticiones reales.</div>';
+}
+function renderStrengthChartOptions(){
+ const rows=strengthProgressRows(),prior=$("chartExercise").value;
+ rows.sort((a,b)=>a.name.localeCompare(b.name,"es")||a.key.localeCompare(b.key));
+ $("chartExercise").innerHTML=rows.length?rows.map(r=>`<option value="${esc(r.key)}">${esc(r.name)} · ${r.variant==="alt"?"Alternativa":"Original"} · ${esc(r.context)}</option>`).join(""):'<option value="">Sin datos todavía</option>';
+ $("chartExercise").value=rows.some(r=>r.key===prior)?prior:rows[0]?.key||"";
+ const selected=rows.find(r=>r.key===$("chartExercise").value);
+ if(selected)$("chartVariant").value=selected.variant;
+}
+function selectStrengthChart(key){
+ const row=strengthProgressRows().find(r=>r.key===key);if(!row)return;
+ $("chartExercise").value=key;$("chartVariant").value=row.variant;drawChart();
+ $("loadChartPanel").scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+ $("chartExercise").focus({preventScroll:true});
+}
+
 function renderReports(){const finished=allFinalized();let sets=0,volume=0;for(const s of finished){const x=statsFor(s);sets+=x.done;volume+=x.volume}$("kpiSessions").textContent=fmt(finished.length);$("kpiSets").textContent=fmt(sets);$("kpiVolume").textContent=fmt(volume);
- const prior=$("chartExercise").value;const recorded=new Map();for(const s of finished){for(const ex of sourceExercises(s)){if(ex.kind==="cardio"||ex.kind==="warmup")continue;const r=s.exercises?.[ex.id];if(r&&strengthSets(s,ex).length){const key=sameExercise(ex.name);recorded.set(key,{id:key,name:ex.name||ex.id})}}}const options=[...recorded.values()].sort((a,b)=>a.name.localeCompare(b.name,"es"));$("chartExercise").innerHTML=options.length?options.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join(""):'<option value="">Sin datos todavía</option>';$("chartExercise").value=options.some(x=>x.id===prior)?prior:options[0]?.id||"";drawChart();
+ renderStrengthSummary();renderStrengthChartOptions();drawChart();
  $("historyCount").textContent=`${finished.length} sesiones`;if(!finished.length)$("historyList").innerHTML='<div class="empty"><b>Sin sesiones finalizadas</b>Las verás aquí ordenadas por fecha.</div>';else{
  const grouped=new Map();for(const s of finished){const date=String(s.date||"Sin fecha");if(!grouped.has(date))grouped.set(date,[]);grouped.get(date).push(s)}$("historyList").innerHTML=[...grouped.entries()].map(([d,list])=>`<div class="dateGroup"><h4>${esc(dateLabel(d))}</h4>${list.map(s=>{const p=statsFor(s),status=p.planned&&p.done===p.planned?"Rutina completada":"Sesión parcial finalizada";const m=s.legacy?"Plan anterior":s.mode==="full"?"Full Body":SCHEMES[s.scheme||"base"]?.label||"Plan semanal";return `<div class="historyitem"><div><strong>${esc(s.title||"Entrenamiento")} · ${esc(status)}</strong><small>${esc(m)} · ${fmt(p.done)} ${p.planned?`de ${p.planned} `:""}series · ${fmt(p.volume)} kg·rep · semana ${esc(s.week||"—")}</small></div>${s.legacy?'<small>Histórico</small>':`<button type="button" class="smallbtn" data-open="${esc(s.key)}">Ver</button>`}</div>`}).join("")}</div>`).join("")}
  const drafts=Object.values(state.sessions).filter(s=>s&&!s.finished&&!s.legacy&&statsFor(s).done>0).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));$("draftCount").textContent=`${drafts.length}`;$("draftList").innerHTML=drafts.length?drafts.map(s=>`<div class="draft"><div><strong>${esc(s.title||"Rutina")}</strong><small>${esc(dateLabel(s.date))} · ${statsFor(s).done} series realizadas</small></div><button type="button" class="smallbtn" data-open="${esc(s.key)}">Abrir</button></div>`).join(""):'<p class="readme">No tenés sesiones pendientes.</p>'}
-function chartData(){const selected=$("chartExercise").value,variant=$("chartVariant").value,metric=$("chartMetric").value;if(!selected)return [];const points=[];
- for(const s of allFinalized().slice().reverse()){let values=[];for(const ex of sourceExercises(s)){if(ex.kind==="cardio"||ex.kind==="warmup"||sameExercise(ex.name)!==selected)continue;const r=s.exercises?.[ex.id];if(!r||(r.variant||"base")!==variant)continue;values.push(...strengthSets(s,ex))}
- if(!values.length)continue;const y=metric==="max"?Math.max(...values.map(z=>Number(z.kg))):values.reduce((a,z)=>a+Number(z.kg)*Number(z.reps),0);points.push({x:String(s.date||""),y,session:s.title||"Entrenamiento"})}
- return points.slice(-36)}
+function chartData(){
+ const row=strengthProgressRows().find(r=>r.key===$("chartExercise").value);
+ if(!row||row.variant!==$("chartVariant").value)return [];
+ return row.sessions.slice(-36).map(s=>({x:s.date,y:$("chartMetric").value==="max"?s.kg:s.volume,session:s.title}));
+}
 function drawChart(){const data=chartData(),target=$("chart"),unit=$("chartMetric").value==="max"?"kg":"kg·rep";if(!data.length){target.innerHTML='<div class="empty"><b>Sin valores para graficar</b>Finalizá sesiones y registrá kilogramos y repeticiones.</div>';$("chartInfo").textContent="";return}
  const W=560,H=228,left=53,right=16,top=18,bottom=43,topValue=Math.max(1,Math.max(...data.map(x=>x.y))*1.17),x=i=>left+(data.length===1?(W-left-right)/2:i*(W-left-right)/(data.length-1)),y=n=>top+(topValue-n)/topValue*(H-top-bottom);
  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de ${esc(unit)} en ${data.length} sesiones">`;
@@ -830,7 +917,10 @@ $("exerciseList").addEventListener("input",e=>{if(e.target.dataset.field&&e.targ
 $("exerciseList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.done){toggleSet(b.dataset.done,Number(b.dataset.index));return}if(b.dataset.count){adjustCount(b.dataset.id,b.dataset.count==="plus"?1:-1);return}if(b.dataset.remove){removeCustom(b.dataset.remove);return}if(b.dataset.hint){const tip=document.querySelector(`[data-tip="${b.dataset.hint}"]`);if(tip)tip.hidden=!tip.hidden}});
 $("finishBtn").addEventListener("click",finalize);$("reopenBtn").addEventListener("click",reopen);
 $("routineTab").addEventListener("click",()=>setTab("routine"));$("historyTab").addEventListener("click",()=>setTab("history"));$("progressTab").addEventListener("click",()=>setTab("progress"));
-$("chartExercise").addEventListener("change",drawChart);$("chartMetric").addEventListener("change",drawChart);$("chartVariant").addEventListener("change",drawChart);
+$("strengthGroup").addEventListener("change",renderStrengthSummary);
+$("strengthSort").addEventListener("change",renderStrengthSummary);
+$("strengthList").addEventListener("click",e=>{const b=e.target.closest("[data-strength-key]");if(b)selectStrengthChart(b.dataset.strengthKey)});
+$("chartExercise").addEventListener("change",()=>{const r=strengthProgressRows().find(r=>r.key===$("chartExercise").value);if(r)$("chartVariant").value=r.variant;drawChart()});$("chartMetric").addEventListener("change",drawChart);$("chartVariant").addEventListener("change",()=>{const rows=strengthProgressRows(),current=rows.find(r=>r.key===$("chartExercise").value),match=rows.find(r=>r.id===current?.id&&r.originName===current?.originName&&r.variant===$("chartVariant").value);if(match)$("chartExercise").value=match.key;drawChart()});
 function openHistoric(k){const s=state.sessions[k];if(!s||s.legacy)return;mode=s.mode;scheme=SCHEMES[s.scheme]?s.scheme:"base";day=s.dayId;week=Number(s.week);date=s.date;save();setTab("routine");renderRoutine();window.scrollTo({top:0,behavior:"smooth"})}
 $("historyList").addEventListener("click",e=>{const el=e.target.closest("[data-open]");if(el)openHistoric(el.dataset.open)});
 $("draftList").addEventListener("click",e=>{const el=e.target.closest("[data-open]");if(el)openHistoric(el.dataset.open)});
