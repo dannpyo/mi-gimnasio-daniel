@@ -4,6 +4,7 @@ const { createServer } = require('node:http');
 const { readFile } = require('node:fs/promises');
 const { resolve, extname } = require('node:path');
 const { chromium } = require('playwright');
+const seedStrengthFixture = require('./strength-fixture.cjs');
 
 const root = resolve(__dirname, '..');
 const prefix = '/mi-gimnasio-daniel/';
@@ -171,7 +172,7 @@ const server = createServer(async (req, res) => {
     assert.equal(await p.evaluate(() => session().finished), true);
     await p.locator('#historyTab').click();
     assert.equal(await p.locator('#kpiSessions').textContent(), '1');
-    await p.selectOption('#chartExercise', 'press plano con barra');
+    await p.selectOption('#chartExercise', await p.evaluate(() => strengthProgressRows().find(r=>r.name==='Press plano con barra').key));
     assert.equal(await p.locator('#chart circle').count(), 1);
     assert.equal(await p.evaluate(() => chartData()[0].y), 20);
     await p.selectOption('#chartMetric', 'volume');
@@ -193,7 +194,7 @@ const server = createServer(async (req, res) => {
       modifySet('w1-press', 0, 'kg', '20'); modifySet('w1-press', 0, 'reps', '10'); toggleSet('w1-press', 0);
       modifySet('w1-press', 1, 'kg', '80'); modifySet('w1-press', 1, 'reps', '10'); toggleSet('w1-press', 1);
       session().counts['w1-press'] = 1; finalize(); setTab('history');
-      $('chartExercise').value = 'press plano con barra'; $('chartMetric').value = 'volume';
+      $('chartExercise').value = strengthProgressRows().find(r=>r.name==='Press plano con barra').key; $('chartMetric').value = 'volume';
       return { volume: statsFor(session()).volume, chart: chartData()[0].y, strength: strengthRows().find(x => x.name === 'Press plano con barra').last.kg };
     });
     assert.deepEqual(result, { volume: 200, chart: 200, strength: 20 });
@@ -286,6 +287,81 @@ const server = createServer(async (req, res) => {
       finally { Storage.prototype.setItem = original; }
       return JSON.stringify(state) === before && localStorage.getItem(STORAGE_KEY) === persisted && !$('toast').textContent.includes('correctamente');
     }), true);
+  });
+
+  await test('Resumen de fuerza: dos últimas sesiones, carga, reps y Epley sin usar planes', async p => {
+    await p.locator('#historyTab').click();
+    assert.equal(await p.locator('.strength-row').count(), 0);
+    await p.evaluate(seedStrengthFixture);
+    const data = await p.evaluate(() => {
+      const before = JSON.stringify(state), persisted = localStorage.getItem(STORAGE_KEY);
+      const rows = strengthProgressRows(); renderReports();
+      return { rows, unchanged: before === JSON.stringify(state) && persisted === localStorage.getItem(STORAGE_KEY) };
+    });
+    assert.equal(data.unchanged, true);
+    const press = data.rows.find(r => r.id === 'test-press' && r.variant === 'base');
+    assert.equal(press.count, 3);
+    assert.equal(press.previous.date, '2026-11-02'); assert.equal(press.latest.date, '2026-11-03');
+    assert.equal(press.previous.kg, 50); assert.equal(press.latest.kg, 55);
+    assert.equal(press.delta, 5); assert.equal(press.percent, 10); assert.equal(press.repsDelta, -2);
+    assert.ok(Math.abs(press.previous.estimate.value - 63.3333333333) < 1e-8);
+    assert.equal(press.latest.estimate.value, 66);
+    assert.ok(Math.abs(press.estimateDelta - 2.6666666667) < 1e-8);
+    const same = data.rows.find(r => r.id === 'test-row');
+    assert.equal(same.delta, 0); assert.equal(same.percent, 0); assert.equal(same.repsDelta, -4);
+    assert.ok(same.estimateDelta < 0);
+    const one = data.rows.find(r => r.id === 'test-leg');
+    assert.equal(one.count, 1); assert.equal(one.previous, null); assert.equal(one.delta, null);
+    assert.equal(one.percent, null); assert.equal(one.estimateDelta, null);
+    const oneCard = p.locator('.strength-row').filter({ has: p.locator('[data-strength-key]', { hasText: 'Prensa de piernas' }) });
+    assert.match(await oneCard.textContent(), /Faltan datos para comparar/);
+    const zero = data.rows.find(r => r.id === 'test-zero');
+    assert.equal(zero.percent, null); assert.equal(zero.previous.estimate, null);
+    const squat = data.rows.find(r => r.id === 'test-squat');
+    assert.equal(squat.latest.kg, 65); assert.equal(squat.latest.reps, 12);
+    assert.equal(squat.latest.estimate.kg, 60); assert.equal(squat.latest.estimate.reps, 8);
+    assert.equal(squat.latest.estimate.value, 76); assert.equal(squat.estimateDelta, -4);
+    for (const id of ['test-high-reps', 'test-assisted']) assert.equal(data.rows.find(r => r.id === id).latest.estimate, null);
+    for (const id of ['test-warmup', 'test-cardio', 'test-timed', 'test-minutes', 'test-hidden', 'test-invalid']) assert.ok(!data.rows.some(r => r.id === id));
+    assert.equal(data.rows.find(r => r.id === 'test-target').latest.kg, 20);
+    assert.ok(Math.abs(data.rows.find(r => r.id === 'test-one-rep').latest.estimate.value - 155) < 1e-8);
+    assert.equal(data.rows.find(r => r.id === 'test-curl').latest.reps, 10);
+  });
+
+  await test('Resumen: variantes y máquinas separadas, filtros, orden y gráfico vinculado', async p => {
+    await p.evaluate(seedStrengthFixture);
+    const machines = await p.evaluate(() => strengthProgressRows().filter(r => r.id === 'test-press'));
+    assert.equal(machines.length, 3);
+    assert.equal(machines.find(r => r.variant === 'base').count, 3);
+    assert.equal(machines.find(r => r.name === 'Press en máquina A').count, 2);
+    assert.equal(machines.find(r => r.name === 'Press en máquina B').count, 1);
+    const another = await p.evaluate(() => strengthProgressRows().find(r => r.id === 'test-press-other'));
+    assert.equal(another.count, 1); assert.equal(another.latest.kg, 300);
+    await p.selectOption('#strengthGroup', 'Pectorales');
+    assert.equal(await p.locator('.strength-row').count(), 4);
+    await p.selectOption('#strengthGroup', '');
+    await p.selectOption('#strengthSort', 'load-up');
+    assert.match(await p.locator('.strength-link').first().textContent(), /Elevación con carga/);
+    await p.selectOption('#strengthSort', 'load-down');
+    assert.match(await p.locator('.strength-link').first().textContent(), /Curl con barra/);
+    await p.selectOption('#strengthSort', 'name');
+    assert.match(await p.locator('.strength-link').first().textContent(), /Curl con barra/);
+    await p.selectOption('#strengthSort', 'estimate-up');
+    assert.match(await p.locator('.strength-link').first().textContent(), /Press con barra/);
+    await p.getByRole('button', { name: 'Ver evolución de Press en máquina A · Alternativa', exact: true }).click();
+    assert.equal(await p.locator('#chartVariant').inputValue(), 'alt');
+    assert.deepEqual(await p.evaluate(() => chartData().map(p => p.y)), [60, 65]);
+    assert.equal(await p.locator('#chart circle').count(), 2);
+    await p.waitForFunction(() => Math.abs(document.querySelector('#loadChartPanel').getBoundingClientRect().top) < 4);
+    assert.equal(await p.locator('#chartExercise').evaluate(n => n === document.activeElement), true);
+    await p.selectOption('#chartVariant', 'base');
+    assert.deepEqual(await p.evaluate(() => chartData().map(p => p.y)), [40, 50, 55]);
+    await p.selectOption('#chartMetric', 'volume');
+    assert.deepEqual(await p.evaluate(() => chartData().map(p => p.y)), [400, 400, 330]);
+    for (const width of [390, 320]) {
+      await p.setViewportSize({ width, height: 844 });
+      assert.equal(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('.strength-row')].every(n => n.scrollWidth <= n.clientWidth)), true);
+    }
   });
 
   await test('PWA: manifiesto, iconos, alcance, actualización y arranque offline', async (p, c) => {
