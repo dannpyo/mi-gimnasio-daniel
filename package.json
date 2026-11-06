@@ -1,0 +1,13 @@
+{
+  "name": "mi-gimnasio-daniel",
+  "private": true,
+  "version": "6.1.0",
+  "scripts": {
+    "test": "node tests/static.cjs && node tests/browser.cjs",
+    "test:static": "node tests/static.cjs",
+    "test:browser": "node tests/browser.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
