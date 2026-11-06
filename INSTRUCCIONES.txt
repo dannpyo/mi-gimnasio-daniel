@@ -1,0 +1,17 @@
+MI GIMNASIO DANIEL FERNÁNDEZ 6.1 — CORRECCIÓN
+
+Este paquete reemplaza la versión 6.1 anterior cuyo JavaScript no iniciaba.
+
+PARA PROBARLO EN COMPUTADORA:
+- Descomprimir completamente este ZIP. No abrir index.html desde dentro del ZIP.
+- Abrir index.html en Chrome (puede funcionar, pero la instalación PWA necesita HTTPS).
+
+PARA ACTUALIZAR TU APLICACIÓN EN SAMSUNG:
+1. Antes de actualizar, abrir la versión que funciona en el celular y usar ⚙ > Exportar JSON.
+2. Ir al repositorio dannpyo/mi-gimnasio-daniel en GitHub.
+3. Subir/reemplazar en la raíz del repositorio index.html, manifest.webmanifest y sw.js; conservar la carpeta icons/ con sus imágenes.
+4. Confirmar Commit changes y verificar el resultado del despliegue en GitHub Pages.
+5. En el Samsung abrir la dirección HTTPS de siempre. Cerrar y reabrir la app si hace falta, para cargar la actualización.
+6. Revisar que se muestren esquema, semana, fecha y ejercicios. Confirmar que las sesiones antiguas sigan visibles.
+
+Importante: los registros se guardan en localStorage del mismo navegador y origen web; no se guardan en GitHub. No borres datos del sitio. Guardá respaldos JSON periódicos.

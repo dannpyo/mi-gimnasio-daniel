@@ -1,0 +1,27 @@
+{
+  "name": "Mi Gimnasio Daniel Fernández · 6.1 Dark Performance",
+  "short_name": "Mi Gimnasio",
+  "description": "Entrenamiento de fuerza, progresión, InBody y análisis corporal privados en el dispositivo.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0B0D0E",
+  "theme_color": "#0B0D0E",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
