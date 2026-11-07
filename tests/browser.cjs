@@ -157,6 +157,108 @@ const server = createServer(async (req, res) => {
     }
   });
 
+  await test('Copia por campo hacia delante, bloqueo y desactivación por ejercicio', async p => {
+    await p.evaluate(() => { document.querySelector('[data-card="w1-press"]').open = true; });
+    const row = i => p.locator(`[data-row="w1-press-${i}"]`);
+    const input = (i, f) => row(i).locator(`[data-field="${f}"]`);
+    const values = () => p.evaluate(() => record('w1-press').sets);
+    assert.equal(await p.locator('[data-copy-following="w1-press"]').isChecked(), true);
+    await input(0, 'kg').fill('20'); await input(0, 'reps').fill('15'); await input(0, 'rir').selectOption('3');
+    assert.deepEqual(await values(), Array.from({ length: 4 }, () => ({ kg: 20, reps: 15, rir: '3', done: false })));
+    assert.equal(await input(3, 'kg').inputValue(), '20');
+    await input(1, 'kg').fill('22.5');
+    assert.deepEqual((await values()).map(z => z.kg), [20, 22.5, 22.5, 22.5]);
+    assert.deepEqual((await values()).map(z => [z.reps, z.rir]), [[15, '3'], [15, '3'], [15, '3'], [15, '3']]);
+    await row(2).locator('[data-done]').click();
+    assert.equal(await input(2, 'kg').isDisabled(), true);
+    assert.equal(await row(2).locator('[data-weight-step="2.5"]').isDisabled(), true);
+    await input(1, 'kg').fill('25'); await input(0, 'reps').fill('12'); await input(0, 'rir').selectOption('2');
+    assert.deepEqual(await values(), [
+      { kg: 20, reps: 12, rir: '2', done: false }, { kg: 25, reps: 12, rir: '2', done: false },
+      { kg: 22.5, reps: 15, rir: '3', done: true }, { kg: 25, reps: 12, rir: '2', done: false }
+    ]);
+    await p.locator('[data-copy-following="w1-press"]').uncheck();
+    await input(1, 'kg').fill('30'); await input(1, 'reps').fill('10'); await input(1, 'rir').selectOption('1');
+    assert.deepEqual((await values()).map(z => [z.kg, z.reps, z.rir]), [[20, 12, '2'], [30, 10, '1'], [22.5, 15, '3'], [25, 12, '2']]);
+    assert.deepEqual(await p.evaluate(() => Object.keys(session().exercises)), ['w1-press']);
+  });
+
+  await test('Botones ±2,5 kg, decimales manuales, cero y entradas inválidas', async p => {
+    await p.evaluate(() => { document.querySelector('[data-card="w1-press"]').open = true; });
+    const row = p.locator('[data-row="w1-press-0"]'), kg = row.locator('[data-field="kg"]');
+    const plus = row.locator('[data-weight-step="2.5"]'), minus = row.locator('[data-weight-step="-2.5"]');
+    await kg.fill('22.35');
+    assert.equal(await kg.evaluate(n => n.validity.valid), true);
+    await plus.click(); assert.equal(await kg.inputValue(), '24.85');
+    await minus.click(); assert.equal(await kg.inputValue(), '22.35');
+    assert.deepEqual(await p.evaluate(() => record('w1-press').sets.map(z => z.kg)), [22.35, 22.35, 22.35, 22.35]);
+    await kg.fill('1'); await minus.click(); assert.equal(await kg.inputValue(), '0');
+    await minus.click(); assert.equal(await kg.inputValue(), '0');
+    await plus.click(); assert.equal(await kg.inputValue(), '2.5');
+    await kg.fill('-5');
+    assert.equal(await p.evaluate(() => record('w1-press').sets[0].kg), 2.5);
+    await row.locator('[data-field="reps"]').fill('10'); await row.locator('[data-done]').click();
+    assert.equal(await p.evaluate(() => record('w1-press').sets[0].done), false);
+    await plus.click(); assert.equal(await kg.inputValue(), '5');
+    await kg.focus(); await kg.press('ControlOrMeta+A'); await kg.press('-');
+    assert.equal(await p.evaluate(() => record('w1-press').sets[1].kg), 5);
+    await kg.fill('20');
+    await p.locator('[data-copy-following="w1-press"]').uncheck(); await plus.click();
+    assert.deepEqual(await p.evaluate(() => record('w1-press').sets.map(z => z.kg)), [22.5, 20, 20, 20]);
+    await p.evaluate(() => { document.querySelector('[data-card="w1-calent"]').open = true; });
+    await p.locator('[data-row="w1-calent-0"] [data-weight-step="2.5"]').click();
+    assert.equal(await p.evaluate(() => record('w1-calent').sets[0].kg), 2.5);
+    assert.equal(await p.evaluate(() => record('w1-calent').sets[0].done), false);
+    for (const width of [390, 320]) {
+      await p.setViewportSize({ width, height: 844 });
+      assert.equal(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('.setrow')].every(n => n.scrollWidth <= n.clientWidth)), true);
+    }
+  });
+
+  await test('Valores y preferencia sobreviven recarga/JSON; sesiones finalizadas inmutables', async p => {
+    await p.evaluate(() => { modifySet('w1-press', 0, 'kg', '22.35'); modifySet('w1-press', 0, 'reps', '15'); modifySet('w1-press', 0, 'rir', '3'); setCopyFollowing('w1-press', false); modifySet('w1-press', 1, 'kg', '25'); });
+    await p.reload();
+    assert.equal(await p.locator('[data-copy-following="w1-press"]').isChecked(), false);
+    assert.deepEqual(await p.evaluate(() => record('w1-press').sets.map(z => z.kg)), [22.35, 25, 22.35, 22.35]);
+    const restored = await p.evaluate(() => {
+      const before = JSON.stringify(state); state = parseBackup(JSON.parse(before)); renderRoutine();
+      return { same: JSON.stringify(state) === before, copy: copyFollowing('w1-press'), other: copyFollowing('w1-calent') };
+    });
+    assert.deepEqual(restored, { same: true, copy: false, other: true });
+    await p.evaluate(() => { toggleSet('w1-press', 0); finalize(); });
+    const unchanged = await p.evaluate(() => {
+      const before = JSON.stringify(state); modifySet('w1-press', 0, 'kg', '100'); modifySet('w1-press', 1, 'reps', '5'); stepWeight('w1-press', 1, 2.5); setCopyFollowing('w1-press', true);
+      return before === JSON.stringify(state);
+    });
+    assert.equal(unchanged, true);
+    assert.equal(await p.locator('[data-copy-following="w1-press"]').isDisabled(), true);
+    assert.equal(await p.locator('[data-card="w1-press"] [data-weight-step]:enabled').count(), 0);
+    await p.reload(); assert.equal(await p.evaluate(() => session().finished), true);
+    assert.equal(await p.evaluate(() => record('w1-press').sets[1].kg), 25);
+  });
+
+  await test('Copia aislada en los siete esquemas, superseries A/B y Full Body', async p => {
+    const count = await p.evaluate(() => {
+      let count = 0;
+      for (const [sch, plan] of Object.entries(SCHEMES)) for (const d of plan.days) {
+        changeContext('weekly', d.id, 1, date, sch);
+        const ex = allExercises().find(e => e.pair && e.sets.length >= 2) || allExercises().find(e => e.kind !== 'cardio' && e.sets.length >= 2);
+        modifySet(ex.id, 0, 'kg', '20'); modifySet(ex.id, 0, 'reps', '12'); modifySet(ex.id, 0, 'rir', '3');
+        if(record(ex.id).sets.some(z => z.kg !== 20 || z.reps !== 12 || z.rir !== '3' || z.done) || Object.keys(session().exercises).length !== 1)throw Error(sch + ':' + d.id);
+        count++;
+      }
+      for (const d of full) {
+        changeContext('full', d.id, 1, date);
+        const ex = allExercises().find(e => e.pair && e.sets.length >= 2) || allExercises().find(e => e.kind !== 'cardio' && e.sets.length >= 2);
+        modifySet(ex.id, 0, 'kg', '22.5'); modifySet(ex.id, 0, 'reps', '10'); modifySet(ex.id, 0, 'rir', '2');
+        if(record(ex.id).sets.some(z => z.kg !== 22.5 || z.reps !== 10 || z.rir !== '2' || z.done) || Object.keys(session().exercises).length !== 1)throw Error(d.id);
+        count++;
+      }
+      return count;
+    });
+    assert.equal(count, 30);
+  });
+
   await test('Series reales, bloqueo, selección, historial, gráficos y recarga', async p => {
     await p.evaluate(() => { document.querySelector('[data-card="w1-press"]').open = true; });
     const row = p.locator('[data-row="w1-press-0"]');
