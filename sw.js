@@ -1,5 +1,5 @@
 /* Mi Gimnasio Daniel Fernández · 6.1 · Servicio offline */
-const CACHE = 'mi-gimnasio-daniel-pwa-shell-2026-11-v61-revision-1';
+const CACHE = 'mi-gimnasio-daniel-pwa-shell-2026-11-v61-rest-supersets-2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 const SHELL_URLS = new Set(SHELL.map(path => new URL(path, self.registration.scope).href));
 self.addEventListener('install', event => {
@@ -41,5 +41,16 @@ self.addEventListener('fetch', event => {
       if (cached) return cached;
       throw error;
     }
+  })());
+});
+
+self.addEventListener('notificationclick', event => {
+  if (event.notification.tag !== 'mi-gimnasio-rest') return;
+  event.notification.close();
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    const app = windows.find(client => client.url.startsWith(self.registration.scope));
+    if (app) return app.focus();
+    return self.clients.openWindow(self.registration.scope);
   })());
 });

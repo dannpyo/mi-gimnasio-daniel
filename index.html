@@ -175,6 +175,18 @@ dialog{background:var(--surface);border:1px solid var(--line)}.dialogActions but
 .weight-quick button{min-width:0;min-height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--cyan);font-size:11px;font-weight:800;padding:3px}
 .weight-quick button:disabled{opacity:.4;color:var(--dim)}
 .weight-quick button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+.superset{grid-column:1/-1;border:1px solid #3E7B6D;border-radius:16px;background:#12201D;min-width:0;overflow:hidden}
+.superset-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;cursor:pointer;list-style:none;min-height:60px;color:var(--cyan)}
+.superset-heading::-webkit-details-marker{display:none}.superset-heading strong{font-size:15px}.superset-heading small{display:block;color:var(--dim);font-size:11px;margin-top:5px}
+.superset[open]>.superset-heading .accordion-caret{transform:rotate(180deg)}
+.superset-body{display:grid;gap:10px;padding:0 9px 10px}.superset-body>.card{min-width:0;background:var(--surface)}
+.superset-body>.card>.exercise-summary{cursor:default}.superset-body>.card>.exercise-summary>.accordion-caret{display:none}
+.superset-note{grid-column:1/-1;color:var(--dim);font-size:12px;line-height:1.5}.superset-note p{margin:0 0 8px}.superset-note button{min-height:40px}
+.rest-panel{border:1px solid var(--line);border-radius:15px;background:var(--surface);padding:12px;margin-top:15px}.rest-panel .restbar{border:0;margin:0;padding:0;flex-wrap:wrap}
+.rest-options{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.rest-options button{min-height:40px;flex:1 1 125px}.rest-options button:disabled{opacity:.5}
+.rest-panel .readme{line-height:1.5}.rest-options [aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan)}
+@media(min-width:720px){.superset-body{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -190,12 +202,12 @@ dialog{background:var(--surface);border:1px solid var(--line)}.dialogActions but
 <div class="sectionhead"><div><h2>Ejercicios</h2><span class="muted tiny" id="exerciseCount"></span></div><button id="addExerciseBtn" type="button" class="outline">＋ Agregar ejercicio</button></div>
 <div class="exercise-controls"><button id="allExercisesBtn" type="button" class="outline">✓ Seleccionar todos</button><button id="pairedExercisesBtn" type="button" class="outline">A/B Solo combinaciones</button></div><p class="readme" style="margin:-5px 0 12px">Seleccioná los ejercicios que harás hoy. Las parejas A/B se realizan seguidas; descansá después de completar ambos. Las cargas históricas son solo referencias, ingresá el peso real.</p>
 <div class="cards" id="exerciseList"></div>
-<div class="restbar" id="restBar" aria-label="Cronómetro manual de descanso">
+<section class="rest-panel" id="restPanel"><div class="restbar" id="restBar" aria-label="Cronómetro manual de descanso">
  <div class="restinfo"><span class="rest-label">DESCANSO MANUAL</span><strong id="restClock" aria-live="off">01:30</strong></div>
  <label class="sr-only" for="restDuration">Duración del descanso</label>
  <select id="restDuration" aria-label="Duración del descanso"><option value="60">60 s</option><option value="75">75 s</option><option value="90" selected>90 s</option><option value="120">120 s</option><option value="180">180 s</option></select>
  <button id="restStart" type="button" class="rest-start">▶ Iniciar</button><button id="restStop" type="button" class="rest-stop" title="Reiniciar cronómetro">↺</button>
-</div>
+</div><div class="rest-options"><button type="button" class="smallbtn" id="restSound" aria-pressed="true">Sonido: activado</button><button type="button" class="smallbtn" id="restTestSound">Probar sonido</button><button type="button" class="smallbtn" id="restNotifications" aria-pressed="false">Activar notificaciones</button></div><p class="readme" id="restStatus" role="status">Listo. El descanso se inicia manualmente.</p><p class="readme">El aviso vibra si el dispositivo lo permite. Con la app oculta o la pantalla bloqueada, Android puede retrasar o impedir sonido, vibración y notificaciones. Al volver se actualiza el tiempo; si Android descarta la página, la cuenta se pierde.</p></section>
 <div class="end"><button class="primary" id="finishBtn" type="button">✓ Finalizar sesión</button><button class="secondary" id="reopenBtn" type="button" hidden>↺ Reabrir sesión</button><p id="finishHint">Se registra con la fecha seleccionada.</p></div>
 </section>
 <section id="historyPage" hidden><div class="sectionhead"><h2>Historial e informes</h2><span class="muted tiny">Almacenamiento local</span></div><div class="kpis"><div class="kpi"><strong id="kpiSessions">0</strong><span>Sesiones finalizadas</span></div><div class="kpi"><strong id="kpiSets">0</strong><span>Series completadas</span></div><div class="kpi"><strong id="kpiVolume">0</strong><span>Volumen kg·rep</span></div></div>
@@ -647,28 +659,59 @@ function setsMarkup(ex,r,locked){const n=ex.target??countFor(ex,session());const
  <button type="button" class="tick ${done?"yes":""}" data-done="${card(ex.id)}" data-index="${i}" aria-pressed="${done}" aria-label="${done?"Desmarcar":"Completar"} serie ${i+1} de ${card(ex.name)}" ${locked?"disabled":""}>${done?"✓":"○"}</button>${ex.kind==="cardio"?"":`<div class="weight-quick"><button type="button" data-weight-step="-2.5" data-ex="${card(ex.id)}" data-index="${i}" aria-label="Restar 2,5 kg a ${card(ex.name)} serie ${i+1}" ${disabled?"disabled":""}>−2,5 kg</button><button type="button" data-weight-step="2.5" data-ex="${card(ex.id)}" data-index="${i}" aria-label="Sumar 2,5 kg a ${card(ex.name)} serie ${i+1}" ${disabled?"disabled":""}>+2,5 kg</button></div>`}</div>
  <div class="targets"><span></span><span class="target">Objetivo: ${card(plannedTarget(ex,i))}</span><span class="tag">${done?"Guardada":"Editable"}</span></div>${hintWeight&&!done?`<span class="suggest-line">↗ ${hintWeight.up?"Podés evaluar subir":"Sugerencia editable"}: ${fmt(hintWeight.kg)} kg (registro ${hintWeight.date})</span>`:""}`;
  }return out;}
-function renderRoutine(){selectors();const d=currentDay(),s=session(),frozen=!!s?.finished;const exercises=frozen&&Array.isArray(s.snapshot)?s.snapshot:allExercises();if(openCards===null)openCards=new Set(exercises.slice(0,1).map(e=>e.id));const st=calculate(s);
+// Agrupar sólo parejas completas e inequívocas; los planes originales no se reordenan ni editan.
+let openSupersets=null;
+function exerciseBlocks(exercises){
+ const pairs=new Map(),used=new Set(),blocks=[];
+ for(const ex of exercises){const match=/^([AB])(\d+)$/.exec(ex.pair||'');if(!match)continue;const list=pairs.get(match[2])||[];list.push(ex);pairs.set(match[2],list)}
+ for(const ex of exercises){
+  if(used.has(ex.id))continue;
+  const match=/^([AB])(\d+)$/.exec(ex.pair||''),members=match?pairs.get(match[2]):null;
+  if(members?.length===2&&members.some(e=>e.pair==='A'+match[2])&&members.some(e=>e.pair==='B'+match[2])){
+   const ordered=[members.find(e=>e.pair[0]==='A'),members.find(e=>e.pair[0]==='B')];
+   ordered.forEach(e=>used.add(e.id));blocks.push({id:match[2],members:ordered});
+  }else{used.add(ex.id);blocks.push({id:null,members:[ex]})}
+ }
+ return blocks;
+}
+function renderExerciseBlocks(blocks,cards,s,frozen){
+ return blocks.map(block=>{
+  if(!block.id)return cards.get(block.members[0].id);
+  const included=block.members.filter(e=>frozen||s?.selected?.[e.id]!==false);
+  const message=included.length===2?'Realizá A y B consecutivamente. Descansá después de B; iniciá el cronómetro manualmente.':included.length===1?'Un integrante omitido: podés realizar el incluido individualmente y descansar al terminar.':'Pareja omitida: no se contabiliza en esta sesión.';
+  const counts=block.members.map(e=>`${e.pair}: ${e.target??countFor(e,s)} series`).join(' · ');
+  return `<details class="superset" data-superset="${esc(block.id)}" ${openSupersets.has(block.id)?'open':''}><summary class="superset-heading"><span><strong>Superserie A${esc(block.id)}/B${esc(block.id)}</strong><small>${esc(counts)} · ${included.length}/2 incluidos</small></span><span class="accordion-caret" aria-hidden="true">⌄</span></summary><div class="superset-body"><div class="superset-note"><p>${message}</p><button type="button" class="smallbtn" data-rest-focus>Ver descanso manual</button></div>${block.members.map(e=>cards.get(e.id)).join('')}</div></details>`;
+ }).join('');
+}
+
+function renderRoutine(){selectors();restControlsRender();const d=currentDay(),s=session(),frozen=!!s?.finished;const exercises=frozen&&Array.isArray(s.snapshot)?s.snapshot:allExercises();if(openCards===null)openCards=new Set(exercises.slice(0,1).map(e=>e.id));const st=calculate(s);
  $("phaseName").textContent=mode==="weekly"?`${SCHEMES[scheme].label.toUpperCase()} · SEMANA ${week}`:`FULL BODY ${day==="fa"?"A":"B"} · SEMANA ${week}`;
  $("heroTitle").textContent=d.label;$("heroSub").textContent=`${d.focus} · ${dateLabel(date)}`;$("statusLabel").textContent=frozen?"● Sesión finalizada":st.done?"● En curso":"● Sin iniciar";$("statusLabel").className="status"+(frozen?" done":"");$("rirText").textContent=`RIR ${mode==="full"?"1–2 (adaptable)":rirWeek(week)}`;$("guidance").innerHTML=guideline();$("exerciseCount").textContent=`${activeExercises().length} elegidos de ${exercises.length} · ${st.planned} series previstas`;
  const chosen=activeExercises();const strengthSets=chosen.filter(x=>x.kind!=="cardio").reduce((a,x)=>a+countFor(x,s),0),cardioMins=chosen.filter(x=>x.kind==="cardio").reduce((a,x)=>a+(x.sets[0]?.reps||0),0);
  const estimateLow=Math.round(strengthSets*1.35+cardioMins+7),estimateHigh=Math.round(strengthSets*1.9+cardioMins+12);
  $("timeEstimate").textContent=`Duración muy aproximada con descansos: ${estimateLow}–${estimateHigh} min. ${estimateLow>90?"Supera tus 75–90 min disponibles: elegí menos series o reducí el cardio.":"Ajustá la selección a tus 75–90 minutos disponibles."}`;
  $("addExerciseBtn").disabled=frozen;$("allExercisesBtn").disabled=frozen;$("pairedExercisesBtn").disabled=frozen;$("pairedExercisesBtn").hidden=!exercises.some(e=>e.pair);
- $("exerciseList").innerHTML=exercises.map((ex,i)=>{
+ const blocks=exerciseBlocks(exercises);
+ if(openSupersets===null)openSupersets=new Set(blocks.filter(b=>b.id).slice(0,1).map(b=>b.id));
+ const grouped=new Set(blocks.filter(b=>b.id).flatMap(b=>b.members.map(e=>e.id)));
+ const pairedActive=new Set(blocks.filter(b=>b.id&&b.members.every(e=>frozen||s?.selected?.[e.id]!==false)).flatMap(b=>b.members.map(e=>e.id)));
+ const cards=new Map(exercises.map((ex,i)=>{
  const selected=frozen?true:s?.selected?.[ex.id]!==false;const r=s?.exercises?.[ex.id]||{variant:"base",sets:[]};const variant=r.variant||"base";const n=ex.target??countFor(ex,s);const done=(r.sets||[]).slice(0,n).filter(x=>x.done).length;
  const alt=ex.alt?`<select class="variant" data-variant="${esc(ex.id)}" ${frozen?"disabled":""} aria-label="Variante de ${esc(ex.name)}"><option value="base" ${variant==="base"?"selected":""}>Original · ${esc(ex.name)}</option><option value="alt" ${variant==="alt"?"selected":""}>Alternativa · ${esc(ex.alt)}</option></select>`:"";
  const range=ex.range?`${ex.range[0]}–${ex.range[1]} reps`:"Reps según serie";
  const hint=ex.pyramid&&mode==="weekly"?`<button type="button" class="smallbtn warn" data-hint="${esc(ex.id)}">💡 Pirámide y progresión</button><div class="pyramid" data-tip="${esc(ex.id)}" hidden><strong>Conservá el patrón de carga progresiva.</strong> Si técnica, repeticiones y RIR lo permiten, podés subir entre series (a veces 2,5–5 kg, según implemento). No es un aumento automático ni obligatorio. Tus cargas históricas se muestran como metas antiguas, no como datos actuales.</div>`:"";
  const choose=`<div class="choose-row"><input type="checkbox" id="choose-${esc(ex.id)}" data-selectex="${esc(ex.id)}" ${selected?"checked":""} ${frozen?"disabled":""}><label for="choose-${esc(ex.id)}">${selected?"Incluir en esta sesión":"Omitido de esta sesión"}</label>${ex.pair?`<span class="combo-chip">${esc(ex.pair)}</span>`:""}</div>`;
- return `<details class="card ${ex.kind} ${selected?"":"excluded"} ${done===n&&n>0&&selected?"all-done":""}" data-card="${esc(ex.id)}" ${openCards.has(ex.id)?"open":""}><summary class="exercise-summary"><div class="head"><span class="number">${i+1}</span><div class="cardtitle"><h3>${esc(variant==="alt"&&ex.alt?ex.alt:ex.name)}</h3><div class="meta">${esc(ex.group)} · ${range} · ${ex.pair?(ex.pair.startsWith("A")?"A → B sin descanso":"Descansar al finalizar pareja A/B"):((ex.rest||"—")+" s descanso")}</div><span class="kind">${ex.kind==="warmup"?"Calentamiento":ex.kind==="cardio"?"Cardio":"Parte principal"}</span></div><span class="doneLabel" data-progress="${esc(ex.id)}">${selected?done+"/"+n:"—"} ✓</span></div><span class="accordion-caret" aria-hidden="true">⌄</span></summary><div class="exercise-body">${choose}${selected?`${ex.pair?`<div class="combo-tip">Superserie ${esc(ex.pair)}: ejercicio A y B consecutivos; descanso al terminar la pareja. Elegí u omití ambos según tu sesión.</div>`:""}${alt}${setsMarkup({...ex,target:n},r,frozen)}${ex.note?`<p class="notes">ⓘ ${esc(ex.note)}</p>`:""}<div class="cardbottom"><span class="muted tiny">${esc(priorSet(ex,variant))}</span><span><button type="button" class="smallbtn" data-count="minus" data-id="${esc(ex.id)}" ${frozen||n<=1?"disabled":""}>− Serie</button> <button type="button" class="smallbtn" data-count="plus" data-id="${esc(ex.id)}" ${frozen||n>=12?"disabled":""}>+ Serie</button>${ex.custom?` <button type="button" class="smallbtn delete" data-remove="${esc(ex.id)}" ${frozen?"disabled":""}>Quitar</button>`:""}</span></div>${hint}${mode==="weekly"&&ex.kind==="main"?`<p class="notes">${esc(suggestedNext(ex))}</p>`:""}`:"<p class='readme'>No se contabiliza en la sesión de hoy.</p>"}</div></details>`;
- }).join("");
+ const group=grouped.has(ex.id),tag=group?"section":"details",heading=group?"div":"summary";
+ return [ex.id,`<${tag} class="card ${ex.kind} ${selected?"":"excluded"} ${done===n&&n>0&&selected?"all-done":""}" data-card="${esc(ex.id)}" ${!group&&openCards.has(ex.id)?"open":""}><${heading} class="exercise-summary"><div class="head"><span class="number">${i+1}</span><div class="cardtitle"><h3>${esc(variant==="alt"&&ex.alt?ex.alt:ex.name)}</h3><div class="meta">${esc(ex.group)} · ${range} · ${pairedActive.has(ex.id)?(ex.pair.startsWith("A")?"A → B sin descanso":"Descansar al finalizar pareja A/B"):((ex.rest||"—")+" s descanso")}</div><span class="kind">${ex.kind==="warmup"?"Calentamiento":ex.kind==="cardio"?"Cardio":"Parte principal"}</span></div><span class="doneLabel" data-progress="${esc(ex.id)}">${selected?done+"/"+n:"—"} ✓</span></div><span class="accordion-caret" aria-hidden="true">⌄</span></${heading}><div class="exercise-body">${choose}${selected?`${ex.pair&&!group?`<div class="combo-tip">Integrante ${esc(ex.pair)} sin pareja incluida. Podés realizarlo individualmente.</div>`:""}${alt}${setsMarkup({...ex,target:n},r,frozen)}${ex.note?`<p class="notes">ⓘ ${esc(ex.note)}</p>`:""}<div class="cardbottom"><span class="muted tiny">${esc(priorSet(ex,variant))}</span><span><button type="button" class="smallbtn" data-count="minus" data-id="${esc(ex.id)}" ${frozen||n<=1?"disabled":""}>− Serie</button> <button type="button" class="smallbtn" data-count="plus" data-id="${esc(ex.id)}" ${frozen||n>=12?"disabled":""}>+ Serie</button>${ex.custom?` <button type="button" class="smallbtn delete" data-remove="${esc(ex.id)}" ${frozen?"disabled":""}>Quitar</button>`:""}</span></div>${hint}${mode==="weekly"&&ex.kind==="main"?`<p class="notes">${esc(suggestedNext(ex))}</p>`:""}`:"<p class='readme'>No se contabiliza en la sesión de hoy.</p>"}</div></${tag}>`];
+ }));
+ $("exerciseList").innerHTML=renderExerciseBlocks(blocks,cards,s,frozen);
  if(!exercises.length)$("exerciseList").innerHTML='<div class="empty"><b>No hay ejercicios</b>Podés agregar uno desde el botón superior.</div>';
  renderProgress();$("finishBtn").hidden=frozen;$("reopenBtn").hidden=!frozen;$("finishHint").textContent=frozen?`Sesión guardada el ${dateLabel(s.date)}. Podés reabrir para editar.`:`Podés finalizar una sesión parcial. Fecha: ${dateLabel(date)}.`;
 }
 function renderProgress(){const s=session(),st=calculate(s),pct=st.planned?Math.round(st.done/st.planned*100):0;$("heroCount").textContent=`${st.done}/${st.planned} series`;$("progressBar").style.width=pct+"%";$("progressText").textContent=`${pct}% · ${fmt(st.volume)} kg·rep`;for(const ex of activeExercises()){
  const n=countFor(ex,s),done=(s?.exercises?.[ex.id]?.sets||[]).slice(0,n).filter(x=>x.done).length;const label=document.querySelector(`[data-progress="${ex.id}"]`);if(label)label.textContent=`${done}/${n} ✓`;const card=document.querySelector(`[data-card="${ex.id}"]`);if(card)card.classList.toggle("all-done",done===n);
  }}
-function changeContext(newMode,newDay,newWeek,newDate,newScheme=scheme){openCards=null;mode=newMode;scheme=SCHEMES[newScheme]?newScheme:"base";day=newDay;week=newWeek;date=newDate;save();renderRoutine();}
+function changeContext(newMode,newDay,newWeek,newDate,newScheme=scheme){openCards=null;openSupersets=null;mode=newMode;scheme=SCHEMES[newScheme]?newScheme:"base";day=newDay;week=newWeek;date=newDate;save();renderRoutine();}
 function selectExercise(id,yes){if(session()?.finished)return;const ex=allExercises().find(e=>e.id===id);if(!ex)return;const sess=session(true);sess.selected||={};if(!yes&&sess.exercises?.[id]?.sets?.some(z=>z.done)&&!confirm("Este ejercicio tiene series marcadas. Si lo omitís, no contará en el volumen de hoy. ¿Continuar?")){renderRoutine();return}sess.selected[id]=!!yes;save();renderRoutine();}
 function bulkSelect(kind){if(session()?.finished)return;const ss=session(true);ss.selected||={};const exs=allExercises();const active=kind==="all"?exs:exs.filter(e=>e.pair||e.kind==="warmup");if(kind==="pair"&&!exs.some(e=>e.pair)){notify("Este día no contiene parejas A/B.");return}if(Object.values(ss.exercises||{}).some(x=>x.sets?.some(z=>z.done))&&!confirm("Cambiar la selección puede excluir series realizadas del resumen. ¿Continuar?"))return;const keep=new Set(active.map(e=>e.id));exs.forEach(e=>ss.selected[e.id]=keep.has(e.id));save();renderRoutine();}
 
@@ -943,17 +986,115 @@ buildReportMarkdown=function(){const base=oldReportMarkdown();const inf=ibLatest
 };
 
 
-/* ===== 6.1 Cronómetro de descanso, activación estrictamente manual ===== */
-let restSeconds=90,restDeadline=0,restTimerInterval=null;
-function restRender(){const remaining=restDeadline?Math.max(0,Math.ceil((restDeadline-Date.now())/1000)):restSeconds;$('restClock').textContent=`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;$('restStart').textContent=restDeadline?'❚❚ Pausar':'▶ Iniciar';if(restDeadline&&remaining===0){restDeadline=0;clearInterval(restTimerInterval);restTimerInterval=null;$('restStart').textContent='▶ Iniciar';notify('Descanso terminado.');try{navigator.vibrate?.([150,70,150])}catch(e){}}}
-function restAction(){if(restDeadline){restSeconds=Math.max(0,Math.ceil((restDeadline-Date.now())/1000));restDeadline=0;clearInterval(restTimerInterval);restTimerInterval=null;restRender();return}if(restSeconds<=0)restSeconds=Number($('restDuration').value);restDeadline=Date.now()+restSeconds*1000;restTimerInterval=setInterval(restRender,250);restRender()}
-function restReset(){restDeadline=0;clearInterval(restTimerInterval);restTimerInterval=null;restSeconds=Number($('restDuration').value);restRender()}
+/* Descanso manual: el reloj usa una fecha límite; no mantiene viva la PWA. */
+let restSeconds=90,restDeadline=0,restTimerInterval=null,restEpoch=0,restAlarmEpoch=-1;
+let restAudio=null;
+const restSoundNodes=new Set();
+const restSoundOn=()=>state.restPreferences?.sound!==false;
+const restNotificationsOn=()=>state.restPreferences?.notifications===true;
+const restNotificationSupported=()=>window.isSecureContext&&typeof window.Notification?.requestPermission==='function'&&'serviceWorker' in navigator;
+function restStatus(message){$('restStatus').textContent=message}
+function restControlsRender(){
+ const audio=!!(window.AudioContext||window.webkitAudioContext);
+ $('restSound').disabled=!audio;$('restTestSound').disabled=!audio;
+ $('restSound').textContent=audio?(restSoundOn()?'Sonido: activado':'Sonido: silenciado'):'Sonido no disponible';
+ $('restSound').setAttribute('aria-pressed',String(restSoundOn()&&audio));
+ const granted=restNotificationSupported()&&Notification.permission==='granted';
+ $('restNotifications').disabled=!restNotificationSupported();
+ $('restNotifications').textContent=restNotificationsOn()&&granted?'Desactivar notificaciones':'Activar notificaciones';
+ $('restNotifications').setAttribute('aria-pressed',String(restNotificationsOn()&&granted));
+}
+function restSetPreference(key,value){state.restPreferences={...state.restPreferences,[key]:value};save();restControlsRender()}
+function restStopSound(){for(const node of restSoundNodes){try{node.stop()}catch{}}restSoundNodes.clear()}
+async function restPrepareAudio(){
+ try{
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  if(!Audio)return false;
+  if(!restAudio||restAudio.state==='closed')restAudio=new Audio();
+  if(restAudio.state!=='running')await restAudio.resume();
+  return restAudio.state==='running';
+ }catch{restStatus('No se pudo activar el audio. Probá el sonido desde este botón.');return false}
+}
+function restPlaySound(){
+ if(!restAudio||restAudio.state!=='running'){restStatus('Audio suspendido: tocá Probar sonido para activarlo.');return false}
+ try{
+  const start=restAudio.currentTime;
+  [740,880].forEach((frequency,i)=>{
+   const osc=restAudio.createOscillator(),gain=restAudio.createGain(),at=start+i*.22;
+   osc.type='sine';osc.frequency.setValueAtTime(frequency,at);
+   gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.12,at+.015);gain.gain.linearRampToValueAtTime(0,at+.16);
+   osc.connect(gain);gain.connect(restAudio.destination);restSoundNodes.add(osc);
+   osc.onended=()=>{osc.disconnect();gain.disconnect();restSoundNodes.delete(osc)};
+   osc.start(at);osc.stop(at+.18);
+  });return true;
+ }catch{restStopSound();restStatus('No se pudo reproducir el aviso sonoro.');return false}
+}
+async function restTestSound(){
+ const epoch=restEpoch;
+ if(await restPrepareAudio()&&epoch===restEpoch){restStopSound();if(restPlaySound())restStatus(restSoundOn()?'Prueba de sonido.':'Prueba de sonido; la alarma sigue silenciada.')}
+}
+function restToggleSound(){
+ const enabled=!restSoundOn();restSetPreference('sound',enabled);
+ if(enabled)void restPrepareAudio();else restStopSound();
+ restStatus(enabled?'Sonido activado para el final del descanso.':'Aviso sonoro silenciado. La vibración sigue disponible.');
+}
+async function restToggleNotifications(){
+ if(!restNotificationSupported())return;
+ if(restNotificationsOn()&&Notification.permission==='granted'){restSetPreference('notifications',false);restStatus('Notificaciones del descanso desactivadas.');return}
+ const button=$('restNotifications');button.disabled=true;
+ try{
+  // El permiso sólo se solicita desde el clic explícito en Activar notificaciones.
+  const permission=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;
+  const registration=permission==='granted'?await navigator.serviceWorker.getRegistration():null;
+  if(permission==='granted'&&registration?.active&&typeof registration.showNotification==='function'){
+   restSetPreference('notifications',true);restStatus('Notificaciones activadas. Android puede retrasarlas si la app queda oculta.');
+  }else{restSetPreference('notifications',false);restStatus(permission==='denied'?'Permiso denegado. Podés cambiarlo en los ajustes del navegador.':'No se activaron las notificaciones. Revisá el permiso y que la PWA esté lista.');}
+ }catch{restStatus('No se pudieron activar las notificaciones.')}
+ finally{restControlsRender()}
+}
+async function restShowNotification(epoch){
+ if(!restNotificationsOn()||!restNotificationSupported()||Notification.permission!=='granted')return;
+ try{
+  const registration=await navigator.serviceWorker.getRegistration();
+  if(epoch!==restEpoch||!restNotificationsOn()||Notification.permission!=='granted')return;
+  if(registration?.active)await registration.showNotification('Descanso terminado',{
+   body:'Podés continuar cuando estés listo.',tag:'mi-gimnasio-rest',silent:true,icon:new URL('./icons/icon-192.png',location.href).href
+  });
+ }catch{if(epoch===restEpoch)restStatus('Descanso terminado; no se pudo mostrar la notificación.')}
+}
+function restFinish(){
+ const epoch=restEpoch;
+ restDeadline=0;restSeconds=0;clearInterval(restTimerInterval);restTimerInterval=null;
+ if(restAlarmEpoch===epoch)return;
+ restAlarmEpoch=epoch;restStatus('Descanso terminado.');notify('Descanso terminado.');
+ if(restSoundOn()&&(window.AudioContext||window.webkitAudioContext))restPlaySound();
+ try{navigator.vibrate?.([150,70,150])}catch{}
+ void restShowNotification(epoch);
+}
+function restRender(){
+ let remaining=restDeadline?Math.max(0,Math.ceil((restDeadline-Date.now())/1000)):restSeconds;
+ if(restDeadline&&remaining===0){restFinish();remaining=0}
+ $('restClock').textContent=`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`;
+ $('restStart').textContent=restDeadline?'❚❚ Pausar':'▶ Iniciar';
+}
+function restAction(){
+ if(restDeadline){
+  if(restDeadline<=Date.now()){restRender();return}
+  restSeconds=Math.max(0,Math.ceil((restDeadline-Date.now())/1000));restDeadline=0;clearInterval(restTimerInterval);restTimerInterval=null;restStatus('Descanso pausado.');restRender();return;
+ }
+ restEpoch++;restStopSound();if(restSoundOn())void restPrepareAudio();
+ if(restSeconds<=0)restSeconds=Number($('restDuration').value);
+ restDeadline=Date.now()+restSeconds*1000;restTimerInterval=setInterval(restRender,250);restStatus('Descanso en curso.');restRender();
+}
+function restReset(){
+ restEpoch++;restStopSound();restDeadline=0;clearInterval(restTimerInterval);restTimerInterval=null;restSeconds=Number($('restDuration').value);restStatus('Listo. El descanso se inicia manualmente.');restRender();
+}
 
 /* ============================== EVENTOS ================================== */
 $("modeSelect").addEventListener("change",e=>changeContext(e.target.value,modesDays(e.target.value,scheme)[0].id,week,date));
 $("schemeSelect").addEventListener("change",e=>changeContext("weekly",SCHEMES[e.target.value].days[0].id,week,date,e.target.value));
 $("exerciseList").addEventListener("change",e=>{if(e.target.matches("[data-copy-following]"))setCopyFollowing(e.target.dataset.copyFollowing,e.target.checked);if(e.target.matches("[data-selectex]"))selectExercise(e.target.dataset.selectex,e.target.checked)});
-$("exerciseList").addEventListener("toggle",e=>{const card=e.target.closest("details[data-card]");if(!card||!card.isConnected||!card.matches("[data-card]"))return;if(openCards===null)openCards=new Set();if(card.open)openCards.add(card.dataset.card);else openCards.delete(card.dataset.card)},true);
+$("exerciseList").addEventListener("toggle",e=>{if(e.target.matches("details[data-superset]")&&e.target.isConnected){openSupersets||=new Set();if(e.target.open)openSupersets.add(e.target.dataset.superset);else openSupersets.delete(e.target.dataset.superset);return}const card=e.target.closest("details[data-card]");if(!card||!card.isConnected||!card.matches("[data-card]"))return;if(openCards===null)openCards=new Set();if(card.open)openCards.add(card.dataset.card);else openCards.delete(card.dataset.card)},true);
 $("allExercisesBtn").addEventListener("click",()=>bulkSelect("all"));
 $("pairedExercisesBtn").addEventListener("click",()=>bulkSelect("pair"));
 $("daySelect").addEventListener("change",e=>changeContext(mode,e.target.value,week,date));
@@ -962,14 +1103,14 @@ $("dateSelect").addEventListener("change",e=>{if(/^\d{4}-\d\d-\d\d$/.test(e.targ
 $("quickDays").addEventListener("click",e=>{const b=e.target.closest("[data-day]");if(b)changeContext(mode,b.dataset.day,week,date)});
 $("exerciseList").addEventListener("change",e=>{const f=e.target.dataset.field;if(f&&!e.target.validity.badInput)modifySet(e.target.dataset.ex,Number(e.target.dataset.index),f,e.target.value);if(e.target.matches("[data-variant]"))changeVariant(e.target.dataset.variant,e.target.value)});
 $("exerciseList").addEventListener("input",e=>{if(e.target.dataset.field&&e.target.tagName==="INPUT"&&!e.target.validity.badInput)modifySet(e.target.dataset.ex,Number(e.target.dataset.index),e.target.dataset.field,e.target.value)});
-$("exerciseList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.weightStep){stepWeight(b.dataset.ex,Number(b.dataset.index),Number(b.dataset.weightStep));return}if(b.dataset.done){toggleSet(b.dataset.done,Number(b.dataset.index));return}if(b.dataset.count){adjustCount(b.dataset.id,b.dataset.count==="plus"?1:-1);return}if(b.dataset.remove){removeCustom(b.dataset.remove);return}if(b.dataset.hint){const tip=document.querySelector(`[data-tip="${b.dataset.hint}"]`);if(tip)tip.hidden=!tip.hidden}});
+$("exerciseList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;if(b.hasAttribute("data-rest-focus")){$("restPanel").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});$("restStart").focus({preventScroll:true});return}if(b.dataset.weightStep){stepWeight(b.dataset.ex,Number(b.dataset.index),Number(b.dataset.weightStep));return}if(b.dataset.done){toggleSet(b.dataset.done,Number(b.dataset.index));return}if(b.dataset.count){adjustCount(b.dataset.id,b.dataset.count==="plus"?1:-1);return}if(b.dataset.remove){removeCustom(b.dataset.remove);return}if(b.dataset.hint){const tip=document.querySelector(`[data-tip="${b.dataset.hint}"]`);if(tip)tip.hidden=!tip.hidden}});
 $("finishBtn").addEventListener("click",finalize);$("reopenBtn").addEventListener("click",reopen);
 $("routineTab").addEventListener("click",()=>setTab("routine"));$("historyTab").addEventListener("click",()=>setTab("history"));$("progressTab").addEventListener("click",()=>setTab("progress"));
 $("strengthGroup").addEventListener("change",renderStrengthSummary);
 $("strengthSort").addEventListener("change",renderStrengthSummary);
 $("strengthList").addEventListener("click",e=>{const b=e.target.closest("[data-strength-key]");if(b)selectStrengthChart(b.dataset.strengthKey)});
 $("chartExercise").addEventListener("change",()=>{const r=strengthProgressRows().find(r=>r.key===$("chartExercise").value);if(r)$("chartVariant").value=r.variant;drawChart()});$("chartMetric").addEventListener("change",drawChart);$("chartVariant").addEventListener("change",()=>{const rows=strengthProgressRows(),current=rows.find(r=>r.key===$("chartExercise").value),match=rows.find(r=>r.id===current?.id&&r.originName===current?.originName&&r.variant===$("chartVariant").value);if(match)$("chartExercise").value=match.key;drawChart()});
-function openHistoric(k){const s=state.sessions[k];if(!s||s.legacy)return;mode=s.mode;scheme=SCHEMES[s.scheme]?s.scheme:"base";day=s.dayId;week=Number(s.week);date=s.date;save();setTab("routine");renderRoutine();window.scrollTo({top:0,behavior:"smooth"})}
+function openHistoric(k){openSupersets=null;const s=state.sessions[k];if(!s||s.legacy)return;mode=s.mode;scheme=SCHEMES[s.scheme]?s.scheme:"base";day=s.dayId;week=Number(s.week);date=s.date;save();setTab("routine");renderRoutine();window.scrollTo({top:0,behavior:"smooth"})}
 $("historyList").addEventListener("click",e=>{const el=e.target.closest("[data-open]");if(el)openHistoric(el.dataset.open)});
 $("draftList").addEventListener("click",e=>{const el=e.target.closest("[data-open]");if(el)openHistoric(el.dataset.open)});
 $("addExerciseBtn").addEventListener("click",openExercise);$("closeExercise").addEventListener("click",()=>$("exerciseDialog").close());
@@ -991,7 +1132,10 @@ $('measureDate').value=localDate();$('photoDate').value=localDate();$('inbodyDat
 $("settingsBtn").addEventListener("click",()=>$("settingsDialog").showModal());$("closeSettings").addEventListener("click",()=>$("settingsDialog").close());
 $("exportBtn").addEventListener("click",exportData);$("importBtn").addEventListener("click",()=>$("importFile").click());$("importFile").addEventListener("change",e=>importFile(e.target.files?.[0]));
 $("resetBtn").addEventListener("click",()=>{if(!confirm("¿Eliminar TODOS los registros de esta versión? Esta acción no se puede deshacer sin un respaldo JSON."))return;state=fresh();mode="weekly";scheme="base";day="w1";week=1;date=localDate();save();$("settingsDialog").close();renderRoutine();renderBodyProgress();notify("Registros eliminados")});
-$('restDuration').addEventListener('change',restReset);$('restStart').addEventListener('click',restAction);$('restStop').addEventListener('click',restReset);restRender();
+$('restDuration').addEventListener('change',restReset);$('restStart').addEventListener('click',restAction);$('restStop').addEventListener('click',restReset);restControlsRender();restRender();
+$('restSound').addEventListener('click',restToggleSound);$('restTestSound').addEventListener('click',restTestSound);$('restNotifications').addEventListener('click',restToggleNotifications);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){restControlsRender();restRender()}});
+window.addEventListener('pageshow',()=>{restControlsRender();restRender()});
 window.addEventListener("storage",e=>{if(e.key===STORAGE_KEY)notify("Hay cambios guardados en otra pestaña. Recargá para verlos.")});
 renderRoutine();renderBodyProgress();if(!storeAllowed)notify("localStorage no disponible: usá respaldos JSON.");
 </script>

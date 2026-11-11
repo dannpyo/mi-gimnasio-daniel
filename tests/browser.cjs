@@ -497,6 +497,7 @@ const server = createServer(async (req, res) => {
     await p.reload(); assert.equal(await p.locator('[data-card]').count(), 8);
   });
 
+  await require('./rest-supersets.cjs')({ test, assert });
   await browser.close(); await new Promise(r => server.close(r));
   console.log(`${passed} passed, ${failed} failed`); process.exitCode = failed ? 1 : 0;
 })().catch(e => { console.error(e); server.close(); process.exit(1); });
